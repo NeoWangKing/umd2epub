@@ -2,10 +2,6 @@
 
 set +x
 
-clang -Wall -Wextra -o umd2txt umd2txt.c -liconv
+clang -Wall -Wextra -std=c11 -o main main.c -liconv -lz
 
-./umd2txt > ./book.txt
-
-clang -Wall -Wextra -o main main.c -liconv
-
-./main
+./main book.umd
