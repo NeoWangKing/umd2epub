@@ -231,37 +231,42 @@ void print_from_buffer(const unsigned char *buffer, uint32_t *start, uint32_t le
     printf("\n");
 }
 
-void print_next_block(const unsigned char *buffer, uint32_t *start, uint32_t buffer_len)
+bool print_next_block(const unsigned char *buffer, uint32_t *start, uint32_t buffer_len)
 {
-    if (*start >=buffer_len) return;
+    if (*start >=buffer_len) {
+        printf("[INFO] You have reached the end of the buffer");
+        return false;
+    }
     if (buffer[*start] == 0x23) {
         printf("23\n"); (*start)++;
         print_from_buffer(buffer, start, 2);
         print_from_buffer(buffer, start, 1);
         uint32_t len = u32_from_buffer(buffer, start, 1); (*start)--;
         print_from_buffer(buffer, start, 1);
-        if (len > 100) len = 100;
         for (size_t i = 0; i < len - 5; ++i) {
             printf("%02x ", buffer[*start]); (*start)++;
         }
         printf("\n");
+        return true;
     }else if (buffer[*start] == 0x24) {
         printf("24\n"); (*start)++;
         print_from_buffer(buffer, start, 4);
         uint32_t len = u32_from_buffer(buffer, start, 4); (*start) -= 4;
         print_from_buffer(buffer, start, 4);
-        if (len > 100) len = 100;
         for (size_t i = 0; i < len - 9; ++i) {
             printf("%02x ", buffer[*start]); (*start)++;
         }
         printf("\n");
+        return true;
     }else {
         printf("[INFO] here is no a beginning of a block");
         for (size_t i = *start; i < *start + 100; ++i) {
             printf("%02x ", buffer[i]);
         }
         printf("\n");
+        return false;
     }
+    return false;
 }
 
 void read_contents(const unsigned char *buffer, uint32_t *rp, uint32_t bytesRead, unsigned char **full_text, size_t *full_text_len)
@@ -336,7 +341,7 @@ void read_contents(const unsigned char *buffer, uint32_t *rp, uint32_t bytesRead
     printf("[INFO] Decompressed total: %zu bytes\n", *full_text_len);
 }
 
-bool save_content_as(const char *file_path, Chapter *chapters, uint32_t chapter_num, unsigned char *full_text, size_t full_text_len)
+bool save_content_as(const unsigned char* buffer, const char *file_path, Chapter *chapters, uint32_t chapter_num, unsigned char *full_text, size_t full_text_len)
 {
     if (full_text_len > 0) {
         // 跳过可能的 UTF‑16LE BOM
@@ -362,12 +367,16 @@ bool save_content_as(const char *file_path, Chapter *chapters, uint32_t chapter_
             if (end_off <= start_off) continue;
 
             // 提取本章的 UTF‑16LE 字节并转码
+            uint32_t rp = chapters[i].title;
+            char *chapter_title = str_from_buffer(buffer, &rp, chapters[i].title_len);
             char *chapter_utf8 = utf16le_to_utf8(full_text + start_off, end_off - start_off);
             if (chapter_utf8) {
+                // fputs(chapter_title, out);
+                // fputc('\n', out);
                 fputs(chapter_utf8, out);
                 free(chapter_utf8);
                 // 章节之间写入换行（最后一章后也可以不加，看需求）
-                if (i + 1 < chapter_num) fputc('\n', out);
+                if (i + 1 < chapter_num) fputs("\n\n", out);
             } else {
                 fprintf(stderr, "[ERROR] UTF‑16LE conversion failed for chapter %zu\n", i+1);
                 fputs("[conversion error]\n", out);
@@ -524,7 +533,7 @@ int main(int argc, char **argv)
     size_t full_text_len = 0;
 
     read_contents(buffer, &rp, bytesRead, &full_text, &full_text_len);
-    save_content_as("book.txt", chapters, chapter_num, full_text, full_text_len);
+    save_content_as(buffer, "book.txt", chapters, chapter_num, full_text, full_text_len);
 
     // print_next_block(buffer, &rp, bytesRead);
     printf("[INFO] Closing file\n");
