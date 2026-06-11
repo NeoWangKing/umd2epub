@@ -398,6 +398,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "[ERROR] no umd file is provided\n");
         return 1;
     }
+
+    // https://dl.wenku8.com/down.php?type=umd&id=1854&vsize=0&vid=1
+    // https://dl.wenku8.com/down.php?type=umd&id=4109&vsize=0&vid=1
     const char *file_path = args_shift(&argc, &argv);
 
     printf("[INFO] Reading %s\n", file_path);
@@ -536,7 +539,6 @@ int main(int argc, char **argv)
     save_content_as(buffer, "book.txt", chapters, chapter_num, full_text, full_text_len);
 
     // print_next_block(buffer, &rp, bytesRead);
-    printf("[INFO] Closing file\n");
 
     return 0;
 
